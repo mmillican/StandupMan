@@ -18,7 +18,7 @@ namespace StandupMan.Models.Standups
         [DynamoDBProperty("FullName")]
         public string FullName { get; set; }
         
-        [DynamoDBProperty("Date"), DynamoDBRangeKey]
+        [DynamoDBProperty("Date")]
         public string Date { get; set; }
 
         [DynamoDBProperty("Yesterday")]
