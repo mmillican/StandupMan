@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Amazon.DynamoDBv2.DataModel;
 using System.Text.RegularExpressions;
 using System;
+using Amazon.DynamoDBv2.Model;
 
 namespace StandupMan.Controllers
 {
@@ -24,12 +25,19 @@ namespace StandupMan.Controllers
             _awsSettings = awsOptions.Value;
             _dynamoClient = new AmazonDynamoDBClient(new BasicAWSCredentials(_awsSettings.AccessKey, _awsSettings.SecretKey), RegionEndpoint.USEast1);
         }
+    
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            var context = new DynamoDBContext(_dynamoClient);
+            
+            var standup = await context.LoadAsync<StandupModel>(id);
 
-        //[HttpGet("find")]
-        //public async Task<IActionResult> Find(string userId, DateTime date)
-        //{
+            if (standup == null)
+                return NotFound();
 
-        //}
+            return Ok(standup);
+        }
 
         [HttpPost("")]
         public async Task<IActionResult> Create([FromBody] PostStandupModel model)
