@@ -1,6 +1,7 @@
 var Botkit = require('botkit'),
     request = require('request'),
-    apiStorage = require('./apiStorage');
+    apiStorage = require('./apiStorage'),
+    moment = require('moment');
 
 var controller = Botkit.slackbot({
     // storage: apiStorage()
@@ -20,19 +21,18 @@ controller.on(['mention', 'direct_mention'], function (bot, message) {
     
     bot.api.users.info({ user: message.user }, function (err, userInfo) {
         var user = userInfo.user;
-        
-        var date = new Date();
-        var today = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
 
+        var standupDate = moment.unix(message.ts).format('YYYY-MM-DD');
+        
         var reqData = {
             userId: message.user,
             name: user.name,
             email: user.profile.email,
             fullName: user.profile.fullName,
-            standupDate: today,
+            standupDate: standupDate,
             message: message.text
         };
-        
+                
         var params = {
             //url: 'http://localhost:52860/standups',
             url: 'http://localhost:5000/standups',
@@ -43,6 +43,7 @@ controller.on(['mention', 'direct_mention'], function (bot, message) {
         };
 
         request.post(params, function (error, response, body) {
+            // TODO: Respond back to user with error
             console.log('Got response');
             console.log(error);
             console.log(body);
