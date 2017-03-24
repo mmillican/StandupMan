@@ -51,3 +51,80 @@ controller.on(['mention', 'direct_mention'], function (bot, message) {
 
     });
 });
+
+controller.hears(['today'], ['direct_message'], function (bot, message) {
+    var userId = message.user;
+    var standupDate = moment.unix(message.ts).format('YYYY-MM-DD');
+
+    var standupId = userId + '_' + standupDate;
+    
+    var reqParams = {
+        url: 'http://localhost:5000/standups/' + standupId,
+        headers: {
+            'User-Agent': 'StandupMan Slack Bot'
+        },
+    };
+
+    request.get(reqParams, function (error, response, body) {
+        if (!error && body) {
+            var data = JSON.parse(body);
+
+            bot.reply(message, {
+                text: 'Today you have: ' + data.today
+            }, function (err, resp) {
+                console.log(err, resp);
+            });
+        } else {
+            bot.reply(message, {
+                text: 'Sorry, I couldn\'t get your standup :cry:.  Please try again.'
+            }, function (err, resp) {
+                if (err) {
+                    console.error(err);
+                }
+            });
+        }
+    });
+});
+
+controller.hears(['yesterday'], ['direct_message'], function (bot, message) {
+    var userId = message.user;
+    var today = moment.unix(message.ts);
+    var yesterday = moment(today).subtract(1, 'days');
+    if (yesterday.day() === 6 || yesterday.day() === 0) {
+        // Saturday or Sunday...
+        yesterday = moment(today).day(0 - 2); // last Friday
+    }
+
+    var standupDate = moment(yesterday).format('YYYY-MM-DD');
+    console.log(standupDate);
+
+    var standupId = userId + '_' + standupDate;
+
+    var reqParams = {
+        url: 'http://localhost:5000/standups/' + standupId,
+        headers: {
+            'User-Agent': 'StandupMan Slack Bot'
+        },
+    };
+
+    request.get(reqParams, function (error, response, body) {
+        console.log(response);
+        if (!error && body) {
+            var data = JSON.parse(body);
+
+            bot.reply(message, {
+                text: 'Yesterday\'s standup: ...'// + data.today
+            }, function (err, resp) {
+                console.log(err, resp);
+            });
+        } else {
+            bot.reply(message, {
+                text: 'Sorry, I couldn\'t get your standup :cry:.  Please try again.'
+            }, function (err, resp) {
+                if (err) {
+                    console.error(err);
+                }
+            });
+        }
+    });
+});

@@ -26,6 +26,13 @@ namespace StandupMan.Controllers
             _dynamoClient = new AmazonDynamoDBClient(new BasicAWSCredentials(_awsSettings.AccessKey, _awsSettings.SecretKey), RegionEndpoint.USEast1);
         }
     
+        //[HttpGet("")]
+        //public async Task<IActionResult> Search()
+        //{
+        //    var context = new DynamoDBContext(_dynamoClient);
+
+        //}
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
