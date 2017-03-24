@@ -60,7 +60,7 @@
 
     - name: Add dotnet-release repo from trafficmanager.net
       apt_repository:
-        repo: deb https://apt-mo.trafficmanager.net/repos/dotnet-release/
+        repo: "deb https://apt-mo.trafficmanager.net/repos/dotnet-release/ {{ ansible_distribution_release }} main"
         state: present
         update_cache: yes
 
