@@ -1,0 +1,17 @@
+# AMI Baking Inventory
+# --------------------
+[us-east-1-standupman]
+us-east-1-standupman
+
+[ec2-dotnet:children]
+us-east-1-standupman
+
+[ec2-image:children]
+ec2-dotnet
+
+[us-east-1:children]
+ec2-dotnet
+
+[us-east-1:vars]
+aws_region=us-east-1
+ansible_user=ubuntu

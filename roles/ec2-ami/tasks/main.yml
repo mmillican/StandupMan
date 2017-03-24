@@ -1,0 +1,23 @@
+---
+- name: Create AMI
+  ec2_ami:
+    name: "{{ name }}"
+    region: "{{ aws_region }}"
+    instance_id: "{{ item }}"
+    wait: yes
+    tags:
+      "ops:retention": "{{ ami_retention | d(180) }}"
+  register: ami_info
+  with_items: "{{ ec2_info.instance_ids }}"
+  tags: ec2
+
+- name: Print AMI Information
+  debug: var=ami_info.results.0.image_id
+  tags: ec2
+
+- name: Destroy Build Instance
+  ec2:
+    state: absent
+    region: "{{ aws_region }}"
+    instance_ids: "{{ ec2_info.instance_ids }}"
+  tags: ec2

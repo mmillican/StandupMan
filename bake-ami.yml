@@ -1,0 +1,108 @@
+# Create a build instance
+- hosts: ec2-image
+  connection: local
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python2.7"
+    ec2_instance_tags:
+      Name: "{{ platform }}-build-{{ timestamp }}"
+      Purpose: "{{ platform }}"
+      Environment: build
+
+  pre_tasks:
+    - name: Ansible Version Check
+      fail: msg="This playbook requires Ansible 2.0.x or greater"
+      when: ansible_version|version_compare(2.0, "<")
+
+    - name: Set Timestamp
+      set_fact: timestamp="{{ ansible_date_time['epoch'] }}"
+
+    - name: Create build security group
+      ec2_group:
+        name: "{{ platform }}-build"
+        description: "Security group for building {{ platform }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        purge_rules: yes
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+
+  roles:
+    - role: ec2-build
+      ec2_base_image: "{{ ubuntu_16_04_ami }}"
+      vpc_subnet_id: "{{ asg.subnets|random }}"
+      ec2_security_groups: "{{ platform }}-build"
+      assign_public_ip: yes
+      ec2_volume_size: 20 # TODO Is this big enough?
+
+- hosts: ec2-image
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Install Python 2
+      raw: test -e /usr/bin/python || (apt-get -qq update && apt-get install -qq python-minimal)
+
+- hosts: ec2-image
+  become: yes
+
+  pre_tasks:
+    - action: ec2_facts
+    - wait_for: path=/var/log/cloud-init.log state=present search_regex=final
+
+  tasks:
+    - name: Add apt key
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: 417A0893
+
+    - name: Add dotnet-release repo from trafficmanager.net
+      apt_repository:
+        repo: deb https://apt-mo.trafficmanager.net/repos/dotnet-release/
+        state: present
+        update_cache: yes
+
+    - name: Install dotnet-dev
+      apt:
+        name: dotnet-dev-1.0.1
+
+    - name: Install nginx
+      apt:
+        name: nginx
+
+    - name: Configure nginx
+      template:
+        src: etc/nginx/sites-available/default
+        dest: /etc/nginx/sites-available/default
+        owner: root
+        group: root
+        mode: 0644
+      notify: reload nginx
+    
+- hosts: ec2-image
+  connection: local
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python2.7"
+
+  pre_tasks:
+    - name: Set Timestamp
+      set_fact: timestamp="{{ ansible_date_time['epoch'] }}"
+
+  roles:
+    - role: ec2-ami
+      name: "{{ platform }}-ami-{{ timestamp | d('unknown') }}"
+
+  post_tasks:
+    - set_fact:
+        yaml:
+          ami: "{{ ami_info.results.0.image_id }}"
+
+    # Create the necessary host_vars directory
+    - local_action: file dest="host_vars/{{ inventory_hostname }}" state=directory
+
+    # Set the host variable file to the updated value
+    - local_action: "copy dest='host_vars/{{ inventory_hostname }}/{{platform}}-ami' content='{{ yaml | to_nice_yaml }}'"
+
+# vim: ft=ansible

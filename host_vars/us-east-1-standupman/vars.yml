@@ -1,0 +1,10 @@
+---
+# TODO Change to desired instance type
+ec2_instance_type: t2.micro
+
+# TODO Change to relevant keypair
+ec2_keypair: ben@paradigm
+
+platform: standupman
+
+# vim: ft=ansible

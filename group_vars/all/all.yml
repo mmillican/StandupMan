@@ -1,0 +1,15 @@
+---
+ubuntu_16_04_ami: ami-f4cc1de2
+
+# TODO Change this
+vpc_id: vpc-c8deaeaf
+
+# TODO Change these
+asg:
+  subnets:
+    - subnet-e0f7e4dd
+    - subnet-c4d7df9c
+    - subnet-fe717ad4
+    - subnet-3fc83376
+
+# vim: ft=ansible
