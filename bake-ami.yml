@@ -79,7 +79,12 @@
         owner: root
         group: root
         mode: 0644
-      notify: reload nginx
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+        enabled: yes
     
 - hosts: ec2-image
   connection: local

@@ -1,8 +1,0 @@
----
-- name: reload nginx
-  service:
-    name: nginx
-    state: reloaded
-    enabled: yes
-
-# vim: ft=ansible
