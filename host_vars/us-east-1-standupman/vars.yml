@@ -7,4 +7,7 @@ ec2_keypair: ben@paradigm
 
 platform: standupman
 
+standupman_user: standup
+standupman_webroot: /var/www/StandupMan
+
 # vim: ft=ansible

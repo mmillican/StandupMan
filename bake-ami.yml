@@ -85,6 +85,50 @@
         name: nginx
         state: restarted
         enabled: yes
+
+    - name: Create webroot
+      file:
+        path: "{{ standupman_webroot }}"
+        state: directory
+        owner: root
+        group: root
+
+    - name: Install unzip to allow application extraction
+      apt:
+        name: unzip
+
+    # TODO This task should be targeted at the publish directory
+    # or more ideally, the application should be built within the AMI
+    # itself.
+    - name: Extract published application
+      unarchive:
+        src: StandupMan-2017-03-27.zip
+        dest: "{{ standupman_webroot }}/"
+      register: standupman_app
+
+    - name: Create standupman user account
+      user:
+        name: "{{ standupman_user }}"
+        comment: "StandupMan DaemonUser"
+
+    - name: Create standupman systemd service
+      template:
+        src: etc/systemd/system/standupman.service.j2
+        dest: /etc/systemd/system/standupman.service
+        owner: root
+        group: root
+        mode: 0644
+      register: standupman_service_unit
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+      when: standupman_service_unit.changed
+
+    - name: Start and enable standupman
+      service:
+        name: standupman
+        state: started
+        enabled: yes
     
 - hosts: ec2-image
   connection: local
