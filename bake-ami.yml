@@ -1,5 +1,5 @@
 # Create a build instance
-- hosts: ec2-image
+- hosts: ec2-platform
   connection: local
   vars:
     ansible_python_interpreter: "/usr/bin/env python2.7"
@@ -37,7 +37,7 @@
       assign_public_ip: yes
       ec2_volume_size: 20 # TODO Is this big enough?
 
-- hosts: ec2-image
+- hosts: ec2-platform
   gather_facts: no
   become: yes
 
@@ -45,7 +45,7 @@
     - name: Install Python 2
       raw: test -e /usr/bin/python || (apt-get -qq update && apt-get install -qq python-minimal)
 
-- hosts: ec2-image
+- hosts: ec2-platform
   become: yes
 
   pre_tasks:
@@ -130,7 +130,7 @@
         state: started
         enabled: yes
     
-- hosts: ec2-image
+- hosts: ec2-platform
   connection: local
   vars:
     ansible_python_interpreter: "/usr/bin/env python2.7"

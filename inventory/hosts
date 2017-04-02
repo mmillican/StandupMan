@@ -6,7 +6,7 @@ us-east-1-standupman
 [ec2-dotnet:children]
 us-east-1-standupman
 
-[ec2-image:children]
+[ec2-platform:children]
 ec2-dotnet
 
 [us-east-1:children]
