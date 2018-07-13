@@ -1,0 +1,8 @@
+---
+assign_public_ip: no
+vpc_subnet_id: subnet-c3729dad
+ec2_instance_tags: {}
+
+ec2_volume_size: 8
+
+# vim: ft=ansible

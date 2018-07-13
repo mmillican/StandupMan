@@ -1,0 +1,117 @@
+# Create a build instance
+- hosts: ec2-platform
+  connection: local
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python2.7"
+    names:
+      asg: "{{ platform }}-asg"
+      elb: "{{ platform }}-elb"
+      lc: "{{ platform }}-{{ ami }}-{{ lc.instance_type }}"
+    asg_instance_tags:
+      - Name: "{{ platform }}"
+      - Environment: prod
+
+  pre_tasks:
+    - name: Ansible Version Check
+      fail: msg="This playbook requires Ansible 2.0.x or greater"
+      when: ansible_version|version_compare(2.0, "<")
+
+    - name: Set Timestamp
+      set_fact: timestamp="{{ ansible_date_time['epoch'] }}"
+
+    - name: Create ASG instance security group
+      ec2_group:
+        name: "{{ names.asg }}"
+        description: "Security group for running {{ platform }} in an ASG"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        purge_rules: yes
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+      register: sg_instances
+
+    - name: Create ELB security group
+      ec2_group:
+        name: "{{ names.elb }}"
+        description: "Security group for {{ platform }} ELB"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        purge_rules: yes
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+      register: sg_elb
+
+    - name: Create ELB
+      ec2_elb_lb:
+        name: "{{ names.elb }}"
+        scheme: internet-facing
+        subnets: "{{ asg.subnets }}"
+        state: present
+        region: "{{ aws_region }}"
+        connection_draining_timeout: 120
+        listeners:
+          - protocol: http
+            load_balancer_port: 80
+            instance_port: 80
+        health_check:
+          ping_protocol: http
+          ping_port: 80
+          ping_path: "/"
+          response_timeout: 30
+          interval: 60
+          unhealthy_threshold: 2
+          healthy_threshold: 2
+        security_group_ids:
+          - "{{ sg_elb.group_id }}"
+      register: platform_elb
+
+    - name: Create Launch Configuration
+      ec2_lc:
+        name: "{{ names.lc }}"
+        assign_public_ip: no
+        image_id: "{{ ami }}"
+        instance_monitoring: yes
+        region: "{{ aws_region }}"
+        instance_type: "{{ lc.instance_type }}"
+        instance_profile_name: "{{ ((lc.instance_profile | d(instance_profile)) | d(False)) or omit }}"
+        security_groups:
+          - "{{ sg_instances.group_id }}"
+        volumes:
+          - device_name: /dev/sda1
+            volume_size: 32
+            device_type: gp2
+            delete_on_termination: true
+
+    - name: Create Autoscaling Group
+      ec2_asg:
+        name: "{{ names.asg }}"
+        health_check_period: 300
+        load_balancers:
+          - "{{ platform_elb.elb.name }}"
+        health_check_type: ELB
+        launch_config_name: "{{ names.lc }}"
+        desired_capacity: 1
+        min_size: 1
+        max_size: 1
+        region: "{{ aws_region }}"
+        vpc_zone_identifier: "{{ asg.subnets }}"
+        wait_for_instances: yes
+        wait_timeout: 900
+        replace_all_instances: yes
+        tags: "{{ asg_instance_tags }}"
+
+# vim: ft=ansible
